@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPIPeliculas;
+using MinimalAPIPeliculas.EndPoints;
 using MinimalAPIPeliculas.Entidades;
+using MinimalAPIPeliculas.Migrations;
 using MinimalAPIPeliculas.Repositorios;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,6 +34,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
+builder.Services.AddScoped<IRepositorioActores, RepositorioActores>();
+
+builder.Services.AddAutoMapper(typeof(Program));
 
 #endregion
 
@@ -51,32 +58,11 @@ app.UseCors();
 app.UseOutputCache();
 
 #region EndPoints
+app.MapGet("/", [EnableCors(policyName: "libre")] () => "Hola mundo!");
 
-app.MapGet("/generos", async (IRepositorioGeneros repositorio) =>
-{
-    return await repositorio.ObtenerTodos();
-}).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(15)));
-
-app.MapGet("/generos/{id:int}", async(IRepositorioGeneros repositorio, int id) =>
-{
-    var genero = await repositorio.ObtenerPorId(id);
-
-    if (genero is null)
-    {
-        return Results.NotFound();
-    }
-
-    return Results.Ok(genero);
-});
-
-app.MapPost("/generos", async(Genero genero, IRepositorioGeneros repositorio) =>
-{
-    var id = await repositorio.Crear(genero);
-    return Results.Created($"/generos/{id}", genero);
-});
-
+app.MapGroup("/generos").MapGeneros();
+app.MapGroup("/actores").MapActores();
 #endregion
-
 #endregion
 
 app.Run();
