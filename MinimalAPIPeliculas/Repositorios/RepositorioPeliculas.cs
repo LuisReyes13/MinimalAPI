@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using MinimalAPIPeliculas.DTOs;
 using MinimalAPIPeliculas.Entidades;
 using MinimalAPIPeliculas.Utilidades;
@@ -8,11 +9,13 @@ namespace MinimalAPIPeliculas.Repositorios
     public class RepositorioPeliculas : IRepositorioPeliculas
     {
         private readonly ApplicationDbContext context;
+        private readonly IMapper mapper;
         private readonly HttpContext httpContext;
 
-        public RepositorioPeliculas(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
+        public RepositorioPeliculas(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor, IMapper mapper)
         {
             this.context = context;
+            this.mapper = mapper;
             httpContext = httpContextAccessor.HttpContext!;
         }
 
@@ -25,7 +28,12 @@ namespace MinimalAPIPeliculas.Repositorios
 
         public async Task<Pelicula?> ObtenerPorId(int id)
         {
-            return await context.Peliculas.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+            return await context.Peliculas
+                .Include(p => p.Comentarios)
+                .Include(p => p.GeneroPeliculas).ThenInclude(gp => gp.Genero)
+                .Include(p => p.ActoresPeliculas.OrderBy(a => a.Orden)).ThenInclude(ap => ap.Actor)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<int> Crear(Pelicula pelicula)
@@ -49,6 +57,45 @@ namespace MinimalAPIPeliculas.Repositorios
         public async Task<bool> Existe(int id)
         {
             return await context.Peliculas.AnyAsync(p => p.Id == id);
+        }
+
+        public async Task AsignarGeneros(int id, List<int> generosIds)
+        {
+            var pelicula = await context.Peliculas
+                .Include(p => p.GeneroPeliculas)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pelicula is null)
+            {
+                throw new ArgumentNullException($"No existe una película con el Id: {id}");
+            }
+
+            var generosPeliculas = generosIds.Select(generoId => new GeneroPelicula() { GeneroId = generoId });
+
+            pelicula.GeneroPeliculas = mapper.Map(generosPeliculas, pelicula.GeneroPeliculas);
+            
+            await context.SaveChangesAsync();
+        }
+
+        public async Task AsignarActores(int id, List<ActorPelicula> actores)
+        {
+            for (int i = 1; i <= actores.Count; i++)
+            {
+                actores[i - 1].Orden = i;
+            }
+
+            var pelicula = await context.Peliculas
+                .Include(p => p.ActoresPeliculas)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (pelicula is null)
+            {
+                throw new ArgumentNullException($"No existe la película con Id: {id}");
+            }
+
+            pelicula.ActoresPeliculas = mapper.Map(actores, pelicula.ActoresPeliculas);
+
+            await context.SaveChangesAsync();
         }
     }
 }
