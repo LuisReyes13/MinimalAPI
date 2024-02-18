@@ -1,25 +1,39 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Client;
+using MinimalAPIPeliculas.DTOs;
 using MinimalAPIPeliculas.Entidades;
+using MinimalAPIPeliculas.Utilidades;
 
 namespace MinimalAPIPeliculas.Repositorios
 {
     public class RepositorioActores : IRepositorioActores
     {
         private readonly ApplicationDbContext context;
-        public RepositorioActores(ApplicationDbContext context)
+        private readonly HttpContext httpContext;
+
+        public RepositorioActores(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             this.context = context;
+            httpContext = httpContextAccessor.HttpContext!;
         }
 
-        public async Task<List<Actor>> ObtenerTodos()
+        public async Task<List<Actor>> ObtenerTodos(PaginacionDTO paginacionDTO)
         {
-            return await context.Actores.OrderBy(a => a.Nombre).ToListAsync();
+            var queryable = context.Actores.AsQueryable();
+            await httpContext.InsertarParametrosPaginacionEnCabecera(queryable);
+            return await queryable.OrderBy(a => a.Nombre).Paginar(paginacionDTO).ToListAsync();
         }
 
         public async Task<Actor?> ObtenerPorId(int id)
         {
             return await context.Actores.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
+        }
+
+        public async Task<List<Actor>> ObtenerPorNombre(string nombre)
+        {
+            return await context.Actores
+                .Where(a => a.Nombre.Contains(nombre))
+                .OrderBy(a => a.Nombre).ToListAsync();
         }
 
         public async Task<int> Crear(Actor actor)

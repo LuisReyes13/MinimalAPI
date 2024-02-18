@@ -7,6 +7,7 @@ using MinimalAPIPeliculas.EndPoints;
 using MinimalAPIPeliculas.Entidades;
 using MinimalAPIPeliculas.Migrations;
 using MinimalAPIPeliculas.Repositorios;
+using MinimalAPIPeliculas.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 var origenesPermitidos = builder.Configuration.GetValue<string>("OriginesPermitidos")!;
@@ -35,6 +36,11 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepositorioActores, RepositorioActores>();
+builder.Services.AddScoped<IRepositorioPeliculas, RepositorioPeliculas>();
+
+//builder.Services.AddScoped<IAlmacenadorArchivos, AlmacenadorArchivosAzure>();
+builder.Services.AddScoped<IAlmacenadorArchivos, AlmacenadorArchivosLocal>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(Program));
 
@@ -53,6 +59,8 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.UseStaticFiles();
+
 app.UseCors();
 
 app.UseOutputCache();
@@ -62,6 +70,7 @@ app.MapGet("/", [EnableCors(policyName: "libre")] () => "Hola mundo!");
 
 app.MapGroup("/generos").MapGeneros();
 app.MapGroup("/actores").MapActores();
+app.MapGroup("/peliculas").MapPeliculas();
 #endregion
 #endregion
 
