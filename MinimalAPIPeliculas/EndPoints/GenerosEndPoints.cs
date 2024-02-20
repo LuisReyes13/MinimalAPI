@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.OutputCaching;
 using MinimalAPIPeliculas.DTOs;
 using MinimalAPIPeliculas.Entidades;
+using MinimalAPIPeliculas.Filtros;
 using MinimalAPIPeliculas.Repositorios;
 
 namespace MinimalAPIPeliculas.EndPoints
@@ -11,15 +13,23 @@ namespace MinimalAPIPeliculas.EndPoints
     {
         public static RouteGroupBuilder MapGeneros(this RouteGroupBuilder group)
         {
-            group.MapGet("/", ObtenerGeneros).CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60)).Tag("generos-get"));
+            group.MapGet("/", ObtenerGeneros)
+                .CacheOutput(c => c.Expire(TimeSpan.FromSeconds(60))
+                .Tag("generos-get"))
+                .RequireAuthorization();
 
             group.MapGet("/{id:int}", ObtenerGeneroPorId);
 
-            group.MapPost("/", CrearGenero);
+            group.MapPost("/", CrearGenero)
+                .AddEndpointFilter<FiltroValidaciones<CrearGeneroDTO>>()
+                .RequireAuthorization("esadmin");
 
-            group.MapPut("/{id:int}", ActualizarGenero);
+            group.MapPut("/{id:int}", ActualizarGenero)
+                .AddEndpointFilter<FiltroValidaciones<CrearGeneroDTO>>()
+                .RequireAuthorization("esadmin");
 
-            group.MapDelete("/{id:int}", BorrarGenero);
+            group.MapDelete("/{id:int}", BorrarGenero)
+                .RequireAuthorization("esadmin");
 
             return group;
         }
@@ -48,7 +58,7 @@ namespace MinimalAPIPeliculas.EndPoints
             return TypedResults.Ok(generoDTO);
         }
 
-        static async Task<Created<GeneroDTO>> CrearGenero(CrearGeneroDTO crearGeneroDTO, 
+        static async Task<Results<Created<GeneroDTO>, ValidationProblem>> CrearGenero(CrearGeneroDTO crearGeneroDTO, 
             IRepositorioGeneros repositorio,
             IOutputCacheStore outputCacheStore,
             IMapper mapper)
@@ -63,7 +73,7 @@ namespace MinimalAPIPeliculas.EndPoints
             return TypedResults.Created($"/generos/{id}", generoDTO);
         }
 
-        static async Task<Results<NotFound, NoContent>> ActualizarGenero(int id, CrearGeneroDTO crearGeneroDTO, 
+        static async Task<Results<NotFound, NoContent, ValidationProblem>> ActualizarGenero(int id, CrearGeneroDTO crearGeneroDTO, 
             IRepositorioGeneros repositorio,
             IOutputCacheStore outputCacheStore,
             IMapper mapper)
