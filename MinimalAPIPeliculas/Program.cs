@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using MinimalAPIPeliculas;
 using MinimalAPIPeliculas.EndPoints;
 using MinimalAPIPeliculas.Entidades;
@@ -44,7 +46,25 @@ builder.Services.AddCors(opciones =>
 
 builder.Services.AddOutputCache();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Peliculas API",
+        Description = "Este es un web api para trabajar con datos de películas",
+        Contact = new OpenApiContact
+        {
+            Email = "luis_reyes@hotmail.com",
+            Name = "Luis Reyes",
+            Url = new Uri("https://reyes.blog")
+        },
+        License = new OpenApiLicense
+        {
+            Name = "OsweProductions",
+            Url = new Uri("https://osweproductions.org/licence/op")
+        }
+    });
+});
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();
 builder.Services.AddScoped<IRepositorioActores, RepositorioActores>();
@@ -129,6 +149,16 @@ app.MapGet("/", [EnableCors(policyName: "libre")] () => "Hola mundo!");
 app.MapGet("/error", () =>
 {
     throw new InvalidOperationException("error de ejemplo");
+});
+
+app.MapPost("modelblinding", ([FromBody] string? nombre) =>
+{
+    if (nombre is null)
+    {
+        nombre = "Vacio";
+    }
+
+    return TypedResults.Ok(nombre);
 });
 
 app.MapGroup("/generos").MapGeneros();
