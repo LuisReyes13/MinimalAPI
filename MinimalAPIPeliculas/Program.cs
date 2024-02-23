@@ -14,6 +14,7 @@ using MinimalAPIPeliculas.Entidades;
 using MinimalAPIPeliculas.Migrations;
 using MinimalAPIPeliculas.Repositorios;
 using MinimalAPIPeliculas.Servicios;
+using MinimalAPIPeliculas.Swagger;
 using MinimalAPIPeliculas.Utilidades;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,7 +45,13 @@ builder.Services.AddCors(opciones =>
     });
 });
 
-builder.Services.AddOutputCache();
+//builder.Services.AddOutputCache();
+
+builder.Services.AddStackExchangeRedisOutputCache(opciones =>
+{
+    opciones.Configuration = builder.Configuration.GetConnectionString("redis");
+});
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -64,6 +71,17 @@ builder.Services.AddSwaggerGen(c =>
             Url = new Uri("https://osweproductions.org/licence/op")
         }
     });
+
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+
+    c.OperationFilter<FiltroAutorizacion>();
 });
 
 builder.Services.AddScoped<IRepositorioGeneros, RepositorioGeneros>();

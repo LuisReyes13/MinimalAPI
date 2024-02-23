@@ -25,7 +25,16 @@ namespace MinimalAPIPeliculas.EndPoints
 
             group.MapPut("/{id:int}", ActualizarGenero)
                 .AddEndpointFilter<FiltroValidaciones<CrearGeneroDTO>>()
-                .RequireAuthorization("esadmin");
+                .RequireAuthorization("esadmin")
+                .WithOpenApi(opciones =>
+                {
+                    opciones.Summary = ("Actualizar un género");
+                    opciones.Description = ("Con este endpoint podemos actualizar un género");
+                    opciones.Parameters[0].Description = ("El Id del género a actualizar");
+                    opciones.RequestBody.Description = ("El género que se desea actualizar");
+
+                    return opciones;
+                });
 
             group.MapDelete("/{id:int}", BorrarGenero)
                 .RequireAuthorization("esadmin");

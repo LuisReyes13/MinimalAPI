@@ -26,12 +26,14 @@ namespace MinimalAPIPeliculas.EndPoints
             group.MapPost("/", Crear)
                 .DisableAntiforgery()
                 .AddEndpointFilter<FiltroValidaciones<CrearPeliculaDTO>>()
-                .RequireAuthorization("esadmin");
+                .RequireAuthorization("esadmin")
+                .WithOpenApi();
 
             group.MapPut("/{id:int}", Actualizar)
                 .DisableAntiforgery()
                 .AddEndpointFilter<FiltroValidaciones<CrearPeliculaDTO>>()
-                .RequireAuthorization("esadmin");
+                .RequireAuthorization("esadmin")
+                .WithOpenApi();
 
             group.MapDelete("/{id:int}", Borrar)
                 .RequireAuthorization("esadmin");
@@ -41,6 +43,9 @@ namespace MinimalAPIPeliculas.EndPoints
 
             group.MapPost("/{id:int}/asignaractores", AsignarActores)
                 .RequireAuthorization("esadmin");
+
+            group.MapGet("/filtrar", FiltrarPeliculas)
+                .AgregarParametrosPeliculasFiltroAOpenAPI();
 
             return group;
         }
@@ -190,6 +195,15 @@ namespace MinimalAPIPeliculas.EndPoints
             await repositorioPeliculas.AsignarActores(id, actores);
 
             return TypedResults.NoContent();
+        }
+
+        static async Task<Ok<List<PeliculaDTO>>> FiltrarPeliculas(PeliculasFiltrarDTO peliculasFiltrarDTO,
+            IRepositorioPeliculas repositorio, IMapper mapper)
+        {
+            var peliculas = await repositorio.Filtrar(peliculasFiltrarDTO);
+            var peliculasDTO = mapper.Map<List<PeliculaDTO>>(peliculas);
+
+            return TypedResults.Ok(peliculasDTO);
         }
     }
 }

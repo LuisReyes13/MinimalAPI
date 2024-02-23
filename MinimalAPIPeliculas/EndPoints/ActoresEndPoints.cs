@@ -30,12 +30,14 @@ namespace MinimalAPIPeliculas.EndPoints
             group.MapPost("/", Crear)
                 .DisableAntiforgery()
                 .AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>()
-                .RequireAuthorization("esadmin");
+                .RequireAuthorization("esadmin")
+                .WithOpenApi();
 
             group.MapPut("/{id:int}", Actualizar)
                 .DisableAntiforgery()
                 .AddEndpointFilter<FiltroValidaciones<CrearActorDTO>>()
-                .RequireAuthorization("esadmin");
+                .RequireAuthorization("esadmin")
+                .WithOpenApi();
 
             group.MapDelete("/{id:int}", Borrar)
                 .RequireAuthorization("esadmin");
